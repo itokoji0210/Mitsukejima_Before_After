@@ -3,111 +3,217 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>地震前 × 地震後 3DGS 比較（Supersplat埋め込み）</title>
+<title>地震前 × 地震後 3DGS 比較（Supersplat埋め込み・フェード既定・デモ付き）</title>
 <style>
   :root{
-    --split:50%;   /* スライダー（%） */
-    --alpha:1;     /* フェード用の不透明度 0〜1 */
+    --alpha: 1;     /* フェード不透明度（0〜1）*/
+    --split: 50%;   /* スプリット位置（%）: 予備機能 */
     --accent:#2b7cff;
-    --radius:12px;
+    --radius:14px;
   }
   *{box-sizing:border-box}
   html,body{height:100%;margin:0;background:#0f1115;color:#e8e8e8;
     font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",Roboto,sans-serif}
-  header{padding:10px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  .btn{border:1px solid #2a3142;background:#1b2232;color:#e8e8e8;border-radius:999px;padding:8px 12px;cursor:pointer}
-  .btn.active{outline:2px solid var(--accent)}
-  .wrap{position:relative;height:calc(100% - 56px);overflow:hidden}
-  iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
-  /* 上レイヤー（地震後） */
-  #now{clip-path:polygon(0 0, var(--split) 0, var(--split) 100%, 0 100%);opacity:var(--alpha)}
 
-  .badge{position:absolute;top:12px;left:12px;background:#1b2232;border:1px solid #2a3142;
-    border-radius:8px;padding:6px 8px;font-size:12px}
-  .badge.r{left:auto;right:12px}
-  .slider{
-    position:absolute;left:0;right:0;bottom:12px;margin:auto;width:min(720px,92vw);
-    background:#1b2232;border:1px solid #2a3142;border-radius:var(--radius);
-    padding:10px 12px;display:flex;align-items:center;gap:10px;backdrop-filter:blur(6px)
+  header{
+    position:sticky; top:0; z-index:10;
+    display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+    padding:10px 12px; background:rgba(10,12,18,.85); backdrop-filter:blur(8px);
+    border-bottom:1px solid #2a3142;
   }
-  .slider input[type="range"]{flex:1;accent-color:var(--accent)}
-  .label{font-size:12px;opacity:.8}
+  h1{font-size:clamp(14px,2.4vw,18px); margin:0 8px 0 0}
+  .btn{
+    border:1px solid #2a3142; background:#1b2232; color:#e8e8e8;
+    border-radius:999px; padding:8px 12px; cursor:pointer; font-size:14px;
+  }
+  .btn.primary{outline:2px solid var(--accent)}
+  .links{margin-left:auto; display:flex; gap:8px; flex-wrap:wrap}
+  .a-btn{
+    display:inline-flex; align-items:center; gap:6px;
+    border:1px solid #2a3142; background:#141a26; color:#e8e8e8; text-decoration:none;
+    border-radius:999px; padding:8px 12px; font-size:14px;
+  }
+
+  /* ビュー領域（スマホでのアドレスバー起伏に強い100dvhを使用） */
+  .wrap{
+    position:relative; height:calc(100dvh - 58px); /* header差し引き */
+    /* 端末を縦持ちでも横持ちでもフィット */
+    min-height:320px;
+    overflow:hidden;
+  }
+
+  /* 2つのiframeを完全に重ねる */
+  .stack{position:absolute; inset:0}
+  iframe.viewer{
+    position:absolute; inset:0; width:100%; height:100%; border:0;
+    /* ここが“タッチ禁止”の肝：iframeに対する操作をブロック */
+    pointer-events:none;
+  }
+  /* 上レイヤー（地震後）: デフォルトはフェード表示 */
+  #now { opacity: var(--alpha); clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+
+  /* 予備：スプリット（必要になったら使えるよう仕込んでおく） */
+  .mode-split #now { clip-path: polygon(0 0, var(--split) 0, var(--split) 100%, 0 100%); }
+
+  /* ラベル */
+  .badge{
+    position:absolute; top:12px; left:12px; z-index:3;
+    background:#1b2232; border:1px solid #2a3142; border-radius:8px; padding:6px 8px; font-size:12px
+  }
+  .badge.r{ left:auto; right:12px }
+
+  /* コントロール */
+  .ctrl{
+    position:absolute; left:0; right:0; bottom:12px; margin:auto;
+    width:min(760px,94vw);
+    display:flex; align-items:center; gap:10px;
+    background:#1b2232; border:1px solid #2a3142; border-radius:var(--radius);
+    padding:10px 12px; z-index:5; backdrop-filter:blur(6px)
+  }
+  .ctrl input[type="range"]{ flex:1; accent-color:var(--accent) }
+  .label{ font-size:12px; opacity:.8 }
+
+  /* デモのガイダンス */
+  .demoTip{
+    position:absolute; inset:auto 0 90px 0; margin:auto; width:min(720px,92vw);
+    display:flex; justify-content:center; pointer-events:none; z-index:6;
+  }
+  .chip{
+    padding:7px 10px; border-radius:999px; font-size:12px;
+    background:rgba(20,26,38,.9); border:1px solid #2a3142;
+    animation: tipfade 4s ease-in-out infinite;
+  }
+  @keyframes tipfade{0%,100%{opacity:.2} 20%,80%{opacity:1}}
+
+  /* スマホ細部 */
+  @media (max-width:600px){
+    .ctrl{ gap:8px; padding:10px }
+    .btn, .a-btn{ padding:7px 10px; font-size:13px }
+    .badge{ font-size:11px }
+  }
 </style>
 </head>
 <body>
   <header>
-    <strong>地震前 × 地震後 3DGS 比較</strong>
-    <button id="modeSplit" class="btn active" aria-pressed="true">スライダー</button>
-    <button id="modeFade"  class="btn" aria-pressed="false">フェード</button>
-    <button id="swap"      class="btn" title="上下レイヤーを入れ替え">入れ替え</button>
+    <h1>地震前 × 地震後 3DGS 比較</h1>
+    <!-- 既定=フェード。必要ならスプリットに切替可能 -->
+    <button id="btnFade"  class="btn primary" aria-pressed="true"  title="フェード表示">フェード</button>
+    <button id="btnSplit" class="btn"          aria-pressed="false" title="スライダー表示（予備機能）">スライダー</button>
+    <!-- 任意：一時的に操作を有効化したい時だけ押す（既定は“操作禁止”） -->
+    <button id="btnToggleTouch" class="btn" title="iframeの操作 有効/無効">操作を一時的に有効化</button>
+
+    <!-- Supersplatページへのリンク（別タブ） -->
+    <div class="links">
+      <a id="lnkPast" class="a-btn" href="PAST_URL" target="_blank" rel="noopener">地震前を開く</a>
+      <a id="lnkNow"  class="a-btn" href="NOW_URL"  target="_blank" rel="noopener">地震後を開く</a>
+    </div>
   </header>
 
-  <div class="wrap" id="wrap" role="application" aria-label="3D比較ビュー">
-    <!-- ↓↓↓ Supersplat公開URLに置き換え ↓↓↓ -->
-    <iframe id="past" src="https://superspl.at/view?id=f60f2a84"></iframe>
-    <iframe id="now"  src="https://superspl.at/view?id=7170d44a"></iframe>
-    <!-- ↑↑↑ 置き換え ↑↑↑ -->
+  <div id="wrap" class="wrap" role="application" aria-label="3D比較ビュー（タッチ操作は無効）">
+    <div class="stack">
+      <!-- ↓↓↓ あなたの Supersplat 公開URL に差し替え ↓↓↓ -->
+      <iframe id="past" class="viewer" allow="fullscreen; xr-spatial-tracking"
+              src="PAST_URL"  title="地震前（過去）"></iframe>
+      <iframe id="now"  class="viewer" allow="fullscreen; xr-spatial-tracking"
+              src="NOW_URL"   title="地震後（現在）"></iframe>
+      <!-- ↑↑↑ 差し替え ↑↑↑ -->
+    </div>
 
     <div class="badge">地震前</div>
     <div class="badge r">地震後</div>
 
-    <div class="slider" id="slider">
-      <span class="label" id="labelL">0%</span>
-      <input id="range" type="range" min="0" max="100" value="50" step="1" aria-label="比較位置" />
-      <span class="label" id="labelR">100%</span>
+    <!-- フェード/スプリット共通のUI（値は0〜100） -->
+    <div class="ctrl">
+      <span class="label" id="lblL">0%</span>
+      <input id="range" type="range" min="0" max="100" step="1" value="50" aria-label="比較位置（フェード/スプリット）" />
+      <span class="label" id="lblR">100%</span>
+    </div>
+
+    <!-- 起動時デモ（2〜3往復） -->
+    <div id="demoTip" class="demoTip" aria-hidden="true">
+      <div class="chip">デモ中：自動で「地震前 ⇄ 地震後」をフェード表示しています</div>
     </div>
   </div>
 
 <script>
-(() => {
-  const root = document.documentElement;
+(()=> {
+  const root  = document.documentElement;
+  const wrap  = document.getElementById('wrap');
+  const iframePast = document.getElementById('past');
+  const iframeNow  = document.getElementById('now');
   const range = document.getElementById('range');
-  const modeSplit = document.getElementById('modeSplit');
-  const modeFade  = document.getElementById('modeFade');
-  const swapBtn   = document.getElementById('swap');
-  const nowFrame  = document.getElementById('now');
-  const pastFrame = document.getElementById('past');
-  let isSplit = true;
+  const btnFade  = document.getElementById('btnFade');
+  const btnSplit = document.getElementById('btnSplit');
+  const btnToggleTouch = document.getElementById('btnToggleTouch');
+  const demoTip = document.getElementById('demoTip');
 
-  function setSplit(v){
-    root.style.setProperty('--split', v+'%');
-    root.style.setProperty('--alpha', 1);
+  // ===== 表示モード：既定はフェード =====
+  let isSplit = false; // false=フェード / true=スプリット
+  function applyModeUI(){
+    document.body.classList.toggle('mode-split', isSplit);
+    btnFade.classList.toggle('primary', !isSplit);
+    btnSplit.classList.toggle('primary', isSplit);
+    btnFade.setAttribute('aria-pressed', String(!isSplit));
+    btnSplit.setAttribute('aria-pressed', String(isSplit));
   }
-  function setFade(v){
-    root.style.setProperty('--alpha', (v/100).toFixed(3));
-  }
+  applyModeUI();
+
+  // スライダー操作：モードに応じてフェード or スプリット
+  function setFade(v){ root.style.setProperty('--alpha', (v/100).toFixed(3)); }
+  function setSplit(v){ root.style.setProperty('--split', v + '%'); }
+
   range.addEventListener('input', e=>{
     const v = Number(e.target.value);
     if(isSplit) setSplit(v); else setFade(v);
   });
 
-  function setMode(split){
-    isSplit = split;
-    modeSplit.classList.toggle('active', split);
-    modeFade.classList.toggle('active', !split);
-    if(split){
-      setSplit(Number(range.value));
-      nowFrame.style.clipPath = '';
-      nowFrame.style.clipPath = `polygon(0 0, var(--split) 0, var(--split) 100%, 0 100%)`;
-    }else{
-      root.style.setProperty('--split', '100%'); // 全面表示に
-      setFade(Number(range.value));
-      nowFrame.style.clipPath = 'polygon(0 0, 100% 0, 100% 100%, 0 100%)';
-    }
+  btnFade.onclick = ()=>{ isSplit = false; applyModeUI(); setFade(range.value) };
+  btnSplit.onclick= ()=>{ isSplit = true;  applyModeUI(); setSplit(range.value) };
+
+  // ===== タッチ/クリック禁止（既定） → 一時的に有効化トグル =====
+  let touchBlocked = true;
+  function applyTouchBlock(){
+    const val = touchBlocked ? 'none' : 'auto';
+    iframePast.style.pointerEvents = val;
+    iframeNow .style.pointerEvents = val;
+    btnToggleTouch.textContent = touchBlocked ? '操作を一時的に有効化' : '操作を再び無効化';
+    wrap.setAttribute('aria-label', touchBlocked ? '3D比較ビュー（タッチ操作は無効）' : '3D比較ビュー（タッチ操作は有効）');
   }
-  modeSplit.onclick = ()=> setMode(true);
-  modeFade.onclick  = ()=> setMode(false);
+  btnToggleTouch.onclick = ()=>{ touchBlocked = !touchBlocked; applyTouchBlock(); };
+  applyTouchBlock();
 
-  swapBtn.onclick = ()=>{
-    const wrap = document.getElementById('wrap');
-    wrap.insertBefore(nowFrame, pastFrame);
-    wrap.insertBefore(pastFrame, wrap.firstChild);
-    const [b1,b2] = wrap.querySelectorAll('.badge');
-    [b1.textContent, b2.textContent] = [b2.textContent, b1.textContent];
-  };
+  // ===== 起動デモ：フェードで2〜3往復（約6〜9秒） =====
+  // ユーザーが操作を始めたらデモ停止
+  let demoRunning = true;
+  const stopDemo = ()=>{ demoRunning = false; demoTip.style.display = 'none'; };
+  range.addEventListener('input', stopDemo, {once:true});
+  btnFade.addEventListener('click', stopDemo, {once:true});
+  btnSplit.addEventListener('click', stopDemo, {once:true});
 
-  // 初期
-  setSplit(50);
+  // デモ用アニメーション（フェードのみ）
+  let t0 = null; // 開始時刻
+  const CYCLES = 3; // 往復回数（2〜3に調整可）
+  const PERIOD = 3000; // 1往復あたりの時間(ms)
+  function easeInOutSine(x){ return -(Math.cos(Math.PI * x) - 1) / 2; }
+
+  function demoLoop(ts){
+    if(!demoRunning) return;
+    if(t0===null) t0 = ts;
+    const elapsed = ts - t0;
+    const progress = Math.min(1, (elapsed % PERIOD) / PERIOD); // 0→1
+    const cyc = Math.floor(elapsed / PERIOD);
+
+    // 0→1→0 の往復: sinイージングで気持ちよく
+    const p = easeInOutSine(progress);
+    const val = progress < 0.5 ? (p*2*100) : ((2 - p*2)*100); // 0→100→0
+    if(!isSplit){ setFade(val); range.value = Math.round(val); }
+
+    if(cyc >= CYCLES){ stopDemo(); return; }
+    requestAnimationFrame(demoLoop);
+  }
+  // 既定はフェードなので、念のためモードをフェードに固定してデモ開始
+  isSplit = false; applyModeUI(); setFade(range.value);
+  requestAnimationFrame(demoLoop);
 })();
 </script>
 </body>
